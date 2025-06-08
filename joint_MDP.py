@@ -113,37 +113,46 @@ if __name__ == "__main__":
     steps = 5000
     num_agents = 2
     env = JointMDP(num_agents=num_agents)
-    runs = 30
-    side_preferences = np.zeros((num_agents, steps, runs))
-    reward_rates = np.zeros((num_agents, steps, runs))
-    for r in range(runs):
+    num_episodes = 30
+    side_preferences = np.zeros((num_agents, num_episodes, steps))
+    reward_rates = np.zeros((num_agents, num_episodes, steps))
+    for episode in range(num_episodes):
         env.reset_params()
         for t in range(steps):
             obs, rewards, done = env.step()
-            print(env.rew_mask)
             for i, agent in enumerate(env.agents):
-                print(f"Agent {i+1} obtained {agent.num_rewards}")
-                print(f"Agent {i+1} Q values {agent.Q}\n")
+                #print(f"Agent {i+1} obtained {agent.num_rewards}")
+                #print(f"Agent {i+1} Q values {agent.Q}\n")
                 side_pref = agent.get_side_preference()
-                side_preferences[i, t, r] = side_pref
-                reward_rates[i, t, r] = agent.num_rewards / t
-                print(side_pref)
+                side_preferences[i, episode, t] = side_pref
+                reward_rates[i, episode, t] = agent.num_rewards / (t+1)
+                #print(side_pref)
 
-    side_preference_mean = np.mean(side_preferences, axis=2)
-    side_preference_sem = sem(side_preferences, axis=2)
-    reward_rate_mean = np.mean(reward_rates, axis=2)
-    reward_rate_sem = sem(reward_rates, axis=2)
+    # Average over episodes
+    reward_rate_mean = np.mean(reward_rates, axis=1)
+    reward_rate_sem = sem(reward_rates, axis=1)
+    side_preference_mean = np.mean(side_preferences, axis=1)
+    side_preference_sem = sem(side_preferences, axis=1)
 
-    plt.plot(side_preference_mean[0, :], label=f"Side preference")
-    plt.plot(reward_rate_mean[0, :], label=f"Reward rate")
+    # Plot single agent data (both agents are similar in joint task)
+    x = np.arange(steps)
+    plt.plot(reward_rate_mean[0, :], color="blue", label=f"Reward rate")
     plt.fill_between(
+        x,
+        reward_rate_mean[0, :] - reward_rate_sem[0, :],
+        reward_rate_mean[0, :] + reward_rate_sem[0, :],
+        alpha=0.5, color="blue"
+    )
+
+    plt.plot(side_preference_mean[0, :], color="orange", label=f"Side preference")
+    plt.fill_between(
+        x,
         side_preference_mean[0, :] - side_preference_sem[0,:],
-        side_preference_mean[0, :] + side_preference_sem[0,:]
-    )
-    plt.fill_between(
-        reward_rate_mean[0, :] - reward_rate_sem[0,:],
-        reward_rate_mean[0, :] + reward_rate_sem[0,:]
+        side_preference_mean[0, :] + side_preference_sem[0,:],
+        alpha=0.5, color="orange"
     )
 
+    plt.xlabel("Steps", fontsize=14)
+    plt.ylabel("Percentage (%)", fontsize=14)
     plt.legend()
     plt.show()

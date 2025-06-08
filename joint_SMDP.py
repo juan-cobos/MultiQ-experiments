@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from enum import IntEnum
 from scipy.stats import sem
 
-np.random.seed(43)
+np.random.seed(45)
 
 ALPHA_RANGE = np.arange(1, 101, 10) / 100  # 0.01 - 1.1
 BETA_RANGE = np.arange(1, 101, 10) / 10  # 0.1 - 10.1
@@ -22,7 +22,7 @@ class ActionSpace(IntEnum):
     RIGHT = 2
 
 class Agent:
-    def __init__(self, alpha=0.01, beta=5, gamma=0.95):
+    def __init__(self, alpha=0.1, beta=5, gamma=0.95):
         self.reset_params()
 
         # Hyper params
@@ -32,6 +32,7 @@ class Agent:
 
     def reset_params(self):
         self.curr_state = None
+        self.last_action = None
         self.Q = None  # State-Action Value
         self.V = None  # Expected Reward
         self.num_rewards = 0
@@ -92,9 +93,11 @@ class JointSMDP:
                 next_state = agent.curr_state
                 all_next_states.append(next_state)
                 observation[i, next_state] = i + 1
+                agent.trajectory.append((agent.curr_state, agent.last_action))
                 continue
 
             action = agent.select_action()
+            agent.last_action = action
             if agent.curr_state + action < len(StateSpace):
                 next_state =  agent.curr_state + action
             else:
@@ -154,17 +157,46 @@ class JointSMDP:
 
 if __name__ == "__main__":
     np.random.seed(34)
-    steps = 5000
+    steps = 1000
+    num_episodes = 30
     num_agents = 2
     env = JointSMDP(num_agents=num_agents)
-    reward_histories = np.zeros((num_agents, steps))
-    for t in range(steps):
-        obs, rewards, done = env.step()
-        for idx in range(len(env.agents)):
-            reward_histories[idx, t] = env.agents[idx].num_rewards / (t+1)
+    reward_rates = np.zeros((num_agents, num_episodes, steps))
+    side_preferences = np.zeros((num_agents, num_episodes, steps))
 
-    mouse = env.agents[0]
-    print(mouse.Q)
-    plt.plot(reward_histories[0])
-    plt.plot(reward_histories[1])
+    for episode in range(num_episodes):
+        env.reset_params()
+        for t in range(steps):
+            obs, rewards, done = env.step()
+            for idx in range(len(env.agents)):
+                reward_rates[idx, episode, t] = env.agents[idx].num_rewards / (t + 1)
+                side_preferences[idx, episode, t] = env.agents[idx].get_side_preference()
+
+    # Average over episodes
+    reward_rate_mean = np.mean(reward_rates, axis=1)
+    reward_rate_sem = sem(reward_rates, axis=1)
+    side_preference_mean = np.mean(side_preferences, axis=1)
+    side_preference_sem = sem(side_preferences, axis=1)
+
+    # Plot single agent data (both agents are similar in joint task)
+    x = np.arange(steps)
+    plt.plot(reward_rate_mean[0, :], color="blue", label=f"Reward rate")
+    plt.fill_between(
+        x,
+        reward_rate_mean[0, :] - reward_rate_sem[0, :],
+        reward_rate_mean[0, :] + reward_rate_sem[0, :],
+        alpha=0.5, color="blue"
+    )
+
+    plt.plot(side_preference_mean[0, :], color="orange", label=f"Side preference")
+    plt.fill_between(
+        x,
+        side_preference_mean[0, :] - side_preference_sem[0, :],
+        side_preference_mean[0, :] + side_preference_sem[0, :],
+        alpha=0.5, color="orange"
+    )
+
+    plt.xlabel("Steps", fontsize=14)
+    plt.ylabel("Percentage (%)", fontsize=14)
+    plt.legend()
     plt.show()
