@@ -117,7 +117,7 @@ class JointSMDP:
             rewards[i] = reward
             self.rew_mask[i, next_state] = 0 # Retrieved reward
 
-            # TODO: p_k is the average reward
+            # TODO: model used on dopaminergic activity
             #rpe = reward - p * dwell_time + agent.V[next_state] - agent.V[agent.curr_state]
             #rpe = ...
             #agent.V[agent.curr_state] += agent.alpha * rpe

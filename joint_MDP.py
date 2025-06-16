@@ -90,7 +90,7 @@ class JointMDP:
             rewards[i] = reward
             self.rew_mask[i, next_state] = 0 # Retrieved reward
 
-            # Q-learning Update (we could also try with SARSA instead)
+            # Q-learning Update
             max_Q_next = np.max(agent.Q[next_state])
             scaled_target = agent.alpha * (reward + agent.gamma * max_Q_next)
             agent.Q[agent.curr_state, action] = (1 - agent.alpha) * agent.Q[agent.curr_state, action] + scaled_target
