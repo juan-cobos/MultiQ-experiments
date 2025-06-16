@@ -124,7 +124,6 @@ class JointSMDP:
 
             # Q-learning Update
             max_Q_next = np.max(agent.Q[next_state])
-            # TODO: discuss if gamma should be raised to the power of time_elapsed
             scaled_target = agent.alpha * (reward + agent.gamma ** agent.dwell_time_elapsed * max_Q_next)
             agent.Q[agent.curr_state,action] = (1 - agent.alpha) * agent.Q[agent.curr_state,action] + scaled_target
 
